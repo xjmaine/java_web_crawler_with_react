@@ -1,6 +1,7 @@
 package controllers;
 
 import com.sun.net.httpserver.HttpServer;
+import handlers.CrawlHandler;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -44,4 +44,30 @@ public class CrawlerService {
     public List<String> getCrawledLinks(){
         return  crawledLinks;
     }
+
+    //add crawled link
+    public void addCrawledLink(String url){
+        if(!visitedLinks.contains(url)){
+            crawledLinks.add(url);
+            visitedLinks.add(url);
+        }
+    }
+
+    //update crawled links
+    public void updateCrawledLink(int index, String newUrl){
+        if(index >= 0 && index < crawledLinks.size()){
+            String oldUrl = crawledLinks.get(index);
+            visitedLinks.remove(oldUrl);
+            crawledLinks.set(index, newUrl);
+            visitedLinks.add(newUrl);
+        }    }
+
+    //delete crawled link
+    public void deleteCrawledLink(int index){
+        if(index >= 0 && index < crawledLinks.size()){
+            String url = crawledLinks.get(index);
+            visitedLinks.remove(url);
+            crawledLinks.remove(index);
+        }
+    }
 }
