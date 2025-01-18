@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Map;
+
 import com.google.gson.Gson;
 
-public class CrawlHandler implements HttpHandler {
+public class CrawlHandler implements HttpHandlers {
     private static CrawlerService crawlerService;
     private static Gson gson;
     private static HandleJsonResponse handleJsonResponse;
@@ -21,7 +23,7 @@ public class CrawlHandler implements HttpHandler {
         this.gson = gson;
         this.handleJsonResponse = handleJsonResponse;
     }
-    public CrawlHandler(){}
+
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -30,21 +32,23 @@ public class CrawlHandler implements HttpHandler {
 
         switch (path) {
             case "/api/v1/crawl":
-                if ("POST".equals(method)) {
+                if ("POST".equalsIgnoreCase(method)) {
                     handlePost(exchange);
                 } else {
-                    exchange.sendResponseHeaders(405, -1); // Method not allowed
+                    sendErrorResponse(exchange, 405, "Method not allowed for /api/v1/crawl");
                 }
                 break;
+
             case "/api/v1/crawl/links":
-                if ("GET".equals(method)) {
+                if ("GET".equalsIgnoreCase(method)) {
                     handleGetLinks(exchange);
                 } else {
-                    exchange.sendResponseHeaders(405, -1); // Method not allowed
+                    sendErrorResponse(exchange, 405, "Method not allowed for /api/v1/crawl/links");
                 }
                 break;
+
             case "/api/v1/crawl/link":
-                switch (method) {
+                switch (method.toUpperCase()) {
                     case "POST":
                         handlePostLink(exchange);
                         break;
@@ -55,93 +59,92 @@ public class CrawlHandler implements HttpHandler {
                         handleDeleteLink(exchange);
                         break;
                     default:
-                        exchange.sendResponseHeaders(405, -1); // Method not allowed
+                        sendErrorResponse(exchange, 405, "Method not allowed for /api/v1/crawl/link");
                 }
                 break;
+
             default:
-                exchange.sendResponseHeaders(404, -1); // Not found
+                sendErrorResponse(exchange, 404, "Endpoint not found");
         }
     }
 
-//    @Override
+    @Override
     public void handlePost(HttpExchange exchange) throws IOException {
-        InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
-        BufferedReader br = new BufferedReader(isr);
-        StringBuilder requestBody = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            requestBody.append(line);
+        try {
+            String requestBody = HandleJsonResponse.readRequestBody(exchange.getRequestBody());
+            Map<String, Object> requestBodyMap = gson.fromJson(requestBody, Map.class);
+
+            String url = (String) requestBodyMap.get("url");
+            int depth = ((Double) requestBodyMap.get("depth")).intValue();
+
+            crawlerService.startCrawling(url, depth);
+            handleJsonResponse.sendJsonResponse(exchange, Map.of("message", "Crawling started", "url", url, "depth", depth));
+        } catch (Exception e) {
+            sendErrorResponse(exchange, 500, "Failed to start crawling: " + e.getMessage());
         }
-
-        String url = "https://www.iana.org/help/example-domains"; // Parse from requestBody
-        int depth = 5; // Parse from requestBody
-
-        crawlerService.startCrawling(url, depth);
-        HandleJsonResponse.sendJsonResponseBody(exchange, crawlerService, gson);
     }
 
     private void handleGetLinks(HttpExchange exchange) throws IOException {
-        HandleJsonResponse.sendJsonResponseBody(exchange, crawlerService, gson);
+        try {
+            handleJsonResponse.sendJsonResponse(exchange, crawlerService.getCrawledLinks());
+        } catch (Exception e) {
+            sendErrorResponse(exchange, 500, "Failed to retrieve links: " + e.getMessage());
+        }
     }
 
     private void handlePostLink(HttpExchange exchange) throws IOException {
-        InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
-        BufferedReader br = new BufferedReader(isr);
-        StringBuilder requestBody = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            requestBody.append(line);
+        try {
+            String requestBody = HandleJsonResponse.readRequestBody(exchange.getRequestBody());
+            Map<String, Object> requestBodyMap = gson.fromJson(requestBody, Map.class);
+
+//            String url = (String) requestBodyMap.get("url");
+
+            String url = "https://apichallenges.eviltester.com/"; //for testing only, remote and use above in frontend
+            crawlerService.addCrawledLink(url);
+
+            handleJsonResponse.sendJsonResponse(exchange, Map.of("message", "Link added", "url", url));
+        } catch (Exception e) {
+            sendErrorResponse(exchange, 500, "Failed to add link: " + e.getMessage());
         }
-
-        String url = "https://www.iana.org/help/example-domains"; // Parse from requestBody
-        crawlerService.addCrawledLink(url);
-
-        String response = "Link added: " + url;
-        exchange.getResponseHeaders().set("Content-Type", "text/plain");
-        exchange.sendResponseHeaders(200, response.length());
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
     }
 
     private void handlePutLink(HttpExchange exchange) throws IOException {
-        InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
-        BufferedReader br = new BufferedReader(isr);
-        StringBuilder requestBody = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            requestBody.append(line);
+        try {
+            String requestBody = HandleJsonResponse.readRequestBody(exchange.getRequestBody());
+            Map<String, Object> requestBodyMap = gson.fromJson(requestBody, Map.class);
+
+            int index = ((Double) requestBodyMap.get("index")).intValue();
+            String newUrl = (String) requestBodyMap.get("newUrl");
+
+            crawlerService.updateCrawledLink(index, newUrl);
+            handleJsonResponse.sendJsonResponse(exchange, Map.of("message", "Link updated", "newUrl", newUrl));
+        } catch (Exception e) {
+            sendErrorResponse(exchange, 500, "Failed to update link: " + e.getMessage());
         }
-
-        int index = 0; // Parse from requestBody
-        String newUrl = "https://www.iana.org/help/example-domains"; // Parse from requestBody
-        crawlerService.updateCrawledLink(index, newUrl);
-
-        String response = "Link updated: " + newUrl;
-        exchange.getResponseHeaders().set("Content-Type", "text/plain");
-        exchange.sendResponseHeaders(200, response.length());
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
     }
 
     private void handleDeleteLink(HttpExchange exchange) throws IOException {
-        InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "utf-8");
-        BufferedReader br = new BufferedReader(isr);
-        StringBuilder requestBody = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            requestBody.append(line);
+        try {
+            String requestBody = HandleJsonResponse.readRequestBody(exchange.getRequestBody());
+            Map<String, Object> requestBodyMap = gson.fromJson(requestBody, Map.class);
+
+            int index = ((Double) requestBodyMap.get("index")).intValue();
+            crawlerService.deleteCrawledLink(index);
+
+            handleJsonResponse.sendJsonResponse(exchange, Map.of("message", "Link deleted", "index", index));
+        } catch (Exception e) {
+            sendErrorResponse(exchange, 500, "Failed to delete link: " + e.getMessage());
         }
-
-        int index = 0; // Parse from requestBody
-        crawlerService.deleteCrawledLink(index);
-
-        String response = "Link deleted at index: " + index;
-        exchange.getResponseHeaders().set("Content-Type", "text/plain");
-        exchange.sendResponseHeaders(200, response.length());
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
     }
+
+    // Utility method to send error responses
+    private void sendErrorResponse(HttpExchange exchange, int statusCode, String message) throws IOException {
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        String errorResponse = gson.toJson(Map.of("error", message));
+        exchange.sendResponseHeaders(statusCode, errorResponse.length());
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(errorResponse.getBytes());
+        }
+    }
+
 }

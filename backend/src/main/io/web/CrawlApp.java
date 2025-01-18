@@ -10,7 +10,7 @@ import java.net.InetSocketAddress;
 
 public class CrawlApp {
     CrawlerService service;
-    Gson gson = new Gson();
+    Gson gson;
     HandleJsonResponse handleJsonResponse;
 
     public CrawlApp(CrawlerService service, Gson gson, HandleJsonResponse handleJsonResponse) {
@@ -18,20 +18,43 @@ public class CrawlApp {
         this.gson = gson;
         this.handleJsonResponse = handleJsonResponse;
     }
-//     CrawlHandler crawlHandler = new CrawlHandler(service, gson, handleJsonResponse);
+
+//    public static void main(String[] args) {
+//        System.out.println("Crawler Server Started...");
+//
+//        try{
+//            //initialise and start server
+//            HttpServer server = HttpServer.create(new InetSocketAddress(8080),0);
+//
+//            // Single CrawlHandler instance reused with shared dependencies
+//            CrawlHandler handler = new CrawlHandler(new CrawlerService(), new Gson(), new HandleJsonResponse());
+//            server.createContext("/api/v1/crawl", handler);
+//            server.createContext("/api/v1/crawl/links", handler);
+//            server.createContext("/api/v1/crawl/link", handler);
+//            server.start(); // Start the server
+//
+//        }catch(IOException e){
+//            System.err.println("Failed to start server: "+ e.getMessage());
+//            e.printStackTrace();
+//        }
+//    }
 
     public static void main(String[] args) {
-        System.out.println("Crawler Server Started...");
+        System.out.println("Crawler Server Starting...");
 
-        try{
-            //initialise and start server
-            HttpServer server = HttpServer.create(new InetSocketAddress(8080),0);
-            server.createContext("/api/v1/crawl", new CrawlHandler());
-            server.createContext("/api/v1/crawl/links", new CrawlHandler());
-            server.createContext("/api/v1/crawl/link", new CrawlHandler());
-            CrawlerController.main(args);
-        }catch(IOException e){
-            System.err.println("Failed to start server: "+ e.getMessage());
+        try {
+            // Initialize dependencies
+            Gson gson = new Gson();
+            CrawlerService crawlerService = new CrawlerService();
+            HandleJsonResponse handleJsonResponse = new HandleJsonResponse();
+
+            // Initialize and start the server
+            CrawlerController controller = new CrawlerController(crawlerService, gson, handleJsonResponse, 8080);
+            controller.start();
+
+        } catch (Exception e) {
+            System.err.println("Failed to start server: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
