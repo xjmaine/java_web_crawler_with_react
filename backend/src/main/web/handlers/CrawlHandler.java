@@ -93,16 +93,32 @@ public class CrawlHandler implements HttpHandlers {
                 sendErrorResponse(exchange, 400, "Depth must be a positive number and less than or equal to 10");
             }
 
-            crawlerService.startCrawling(url, depth); //start crawling service
+            //start asynchronous crawling process
 
-            //return crawled links in json reponse
-            List<String> crawledResults = crawlerService.getCrawledLinks();
-            handleJsonResponse.sendJsonResponse(exchange, Map.of(
-                    "message", "Crawling completed successfully. ",
-                    "url", url,
-                    "depth", depth,
-                    "crawledResults", crawledResults
-            ));
+            crawlerService.startAsynchronousCrawl(url, depth).thenRun(()->{
+                //return crawled links in json reponse
+                try {
+                    List<String> crawledResults = crawlerService.getCrawledLinks();
+                    handleJsonResponse.sendJsonResponse(exchange, Map.of(
+                            "message", "Crawling completed successfully. ",
+                            "url", url,
+                            "depth", depth,
+                            "crawledResults", crawledResults
+                    ));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }).exceptionally(ex -> {
+                try {
+                    sendErrorResponse(exchange, 500, "Crawling failed to complete: " + ex.getMessage());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return null;
+            }); //start crawling service
+
+
 
 
         } catch (Exception e) {

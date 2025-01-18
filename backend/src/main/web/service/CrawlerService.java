@@ -2,6 +2,7 @@ package service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -12,6 +13,11 @@ public class CrawlerService {
     private Set<String> visitedLinks = new HashSet<>();
     private  List<String> crawledLinks = new ArrayList<>();
 
+
+    //Asynchronous calls on the URLs
+    public CompletableFuture<Void> startAsynchronousCrawl(String url, int depth){
+        return CompletableFuture.runAsync(() -> startCrawling(url, depth));
+    }
     //method to crawl through urls
     public void startCrawling(String url, int depth){
 
