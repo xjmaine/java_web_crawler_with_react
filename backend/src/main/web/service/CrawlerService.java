@@ -1,10 +1,8 @@
 package service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -16,33 +14,38 @@ public class CrawlerService {
 
     //method to crawl through urls
     public void startCrawling(String url, int depth){
-        if(depth == 0){
-            return;
-        }
-        //avoid duplicate links
-        if(!visitedLinks.add(url)){
-            return;
+
+        if(depth == 0 || visitedLinks.contains(url)){
+            return; // Stop if depth is 0 or URL has already been visited
         }
 
         try{
-            String linkTag = "a[href]";
-            Document document = Jsoup.connect(url).get();
-            Elements links = document.select(linkTag);
+            System.out.println("Crawling URL: " + url);
+            visitedLinks.add(url);
+            crawledLinks.add(url);
 
-            for(Element link: links){
+            Document document = Jsoup.connect(url).get(); //fetch doc content
+
+            Elements links = document.select("a[href]");
+            for (Element link : links){
                 String nextUrl = link.absUrl("href");
+
+                //avoid duplicate links
                 if(!visitedLinks.contains(nextUrl)){
-                    System.out.println("Crawling URL: "+nextUrl);
-                    startCrawling(nextUrl, depth-1);
+                    startCrawling(nextUrl, depth -1);
                 }
             }
-        }catch (IOException e){
-            System.err.println("Error fetching url..." +url);
+
+        } catch(Exception e){
+            System.err.println("Error fetching URL: " + url + "_" + e.getMessage());
+            e.printStackTrace();
         }
+
     }
 
+    // Retrieve the list of all crawled links
     public List<String> getCrawledLinks(){
-        return  crawledLinks;
+        return new ArrayList<>( crawledLinks);
     }
 
     //add crawled link

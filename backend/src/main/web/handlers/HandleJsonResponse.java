@@ -9,16 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class HandleJsonResponse {
-
-    /**
-     * Sends a JSON response body containing the crawled links.
-     *
-     * @param exchange        the HttpExchange object for the request/response
-     * @param crawlerService  the service providing crawled link data
-     * @param gson            the Gson instance for JSON serialization
-     * @throws IOException if an I/O error occurs
-     */
-
     public static void sendJsonResponse(HttpExchange exchange, Object data) throws IOException {
         Gson gson = new Gson();
         String jsonResponse = gson.toJson(data);
@@ -33,16 +23,6 @@ public class HandleJsonResponse {
             outputStream.write(responseBytes); // Write the response body
         }
     }
-
-
-    /**
-     * Sends a JSON error response with the specified status code and message.
-     *
-     * @param exchange    the HttpExchange object for the request/response
-     * @param statusCode  the HTTP status code
-     * @param errorMessage the error message to include in the response
-     * @throws IOException if an I/O error occurs
-     */
 
     public static void sendErrorResponse(HttpExchange exchange, int statusCode, String errorMessage) throws IOException {
         // Construct the JSON error message

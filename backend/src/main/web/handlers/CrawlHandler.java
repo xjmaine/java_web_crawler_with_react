@@ -35,7 +35,7 @@ public class CrawlHandler implements HttpHandlers {
                 if ("POST".equalsIgnoreCase(method)) {
                     handlePost(exchange);
                 } else {
-                    sendErrorResponse(exchange, 405, "Method not allowed for /api/v1/crawl");
+                    sendErrorResponse(exchange, 400, "Method not allowed for /api/v1/crawl");
                 }
                 break;
 
@@ -43,7 +43,7 @@ public class CrawlHandler implements HttpHandlers {
                 if ("GET".equalsIgnoreCase(method)) {
                     handleGetLinks(exchange);
                 } else {
-                    sendErrorResponse(exchange, 405, "Method not allowed for /api/v1/crawl/links");
+                    sendErrorResponse(exchange, 400, "Method not allowed for /api/v1/crawl/links");
                 }
                 break;
 
@@ -74,13 +74,39 @@ public class CrawlHandler implements HttpHandlers {
             String requestBody = HandleJsonResponse.readRequestBody(exchange.getRequestBody());
             Map<String, Object> requestBodyMap = gson.fromJson(requestBody, Map.class);
 
-            String url = (String) requestBodyMap.get("url");
-            int depth = ((Double) requestBodyMap.get("depth")).intValue();
+            // Validate and extract the URL and depth
+             String url = (String) requestBodyMap.get("url");
+//            int depth = ((Double) requestBodyMap.get("depth")).intValue();
+            if(url == null || url.isEmpty()) {
+                sendErrorResponse(exchange, 400, "URL is required");
+                return;
+            }
 
-            crawlerService.startCrawling(url, depth);
-            handleJsonResponse.sendJsonResponse(exchange, Map.of("message", "Crawling started", "url", url, "depth", depth));
+            Object objectDepth = requestBodyMap.get("depth");
+            if(objectDepth == null|| !(objectDepth instanceof Double)){
+                sendErrorResponse(exchange, 400, "Depth must be a number");
+                return;
+            }
+
+            int depth = ((Double) objectDepth).intValue();
+            if(depth <= 0 || depth > Integer.MAX_VALUE){
+                sendErrorResponse(exchange, 400, "Depth must be a positive number and less than or equal to 10");
+            }
+
+            crawlerService.startCrawling(url, depth); //start crawling service
+
+            //return crawled links in json reponse
+            List<String> crawledResults = crawlerService.getCrawledLinks();
+            handleJsonResponse.sendJsonResponse(exchange, Map.of(
+                    "message", "Crawling completed successfully. ",
+                    "url", url,
+                    "depth", depth,
+                    "crawledResults", crawledResults
+            ));
+
+
         } catch (Exception e) {
-            sendErrorResponse(exchange, 500, "Failed to start crawling: " + e.getMessage());
+            sendErrorResponse(exchange, 500, "Failed to process request: " + e.getMessage());
         }
     }
 
@@ -97,9 +123,7 @@ public class CrawlHandler implements HttpHandlers {
             String requestBody = HandleJsonResponse.readRequestBody(exchange.getRequestBody());
             Map<String, Object> requestBodyMap = gson.fromJson(requestBody, Map.class);
 
-//            String url = (String) requestBodyMap.get("url");
-
-            String url = "https://apichallenges.eviltester.com/"; //for testing only, remote and use above in frontend
+             String url = (String) requestBodyMap.get("url");
             crawlerService.addCrawledLink(url);
 
             handleJsonResponse.sendJsonResponse(exchange, Map.of("message", "Link added", "url", url));
