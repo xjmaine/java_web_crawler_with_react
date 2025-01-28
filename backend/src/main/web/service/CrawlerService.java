@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+import com.sun.net.httpserver.HttpExchange;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -52,12 +53,17 @@ public class CrawlerService {
             System.err.println("Error fetching URL: " + url + "_" + e.getMessage());
 
             //check headers
-            Document document = Jsoup.connect(url).get();
-            Element head = document.head();
-            System.out.println("URL Head: " +url);
             e.printStackTrace();
         }
 
+    }
+
+    // print request headers
+    private void printRequestHeaders(HttpExchange exchange){
+        Set<Map.Entry<String, List<String>>> headers = new exchange.getRequestHeaders().entrySet();
+        for(Map.Entry<String, List<String>> header : headers){
+            System.out.println(header.getKey() + ": "+String.join(", ") + header.getValue());
+        }
     }
 
     // Retrieve the list of all crawled links
