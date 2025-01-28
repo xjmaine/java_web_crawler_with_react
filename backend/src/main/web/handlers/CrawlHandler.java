@@ -39,7 +39,7 @@ public class CrawlHandler implements HttpHandlers {
                 }
                 break;
 
-            case "/api/v1/crawl/links":
+            case "/api/v1/crawls":
                 if ("GET".equalsIgnoreCase(method)) {
                     handleGetLinks(exchange);
                 } else {
@@ -47,7 +47,7 @@ public class CrawlHandler implements HttpHandlers {
                 }
                 break;
 
-            case "/api/v1/crawl/link":
+            case "/api/v1/crawl/":
                 switch (method.toUpperCase()) {
                     case "POST":
                         handlePostLink(exchange);

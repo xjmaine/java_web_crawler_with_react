@@ -16,10 +16,16 @@ public class CrawlerService {
 
     //Asynchronous calls on the URLs
     public CompletableFuture<Void> startAsynchronousCrawl(String url, int depth){
-        return CompletableFuture.runAsync(() -> startCrawling(url, depth));
+        return CompletableFuture.runAsync(() -> {
+            try {
+                startCrawling(url, depth);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
     //method to crawl through urls
-    public void startCrawling(String url, int depth){
+    public void startCrawling(String url, int depth) throws IOException {
 
         if(depth == 0 || visitedLinks.contains(url)){
             return; // Stop if depth is 0 or URL has already been visited
@@ -44,6 +50,11 @@ public class CrawlerService {
 
         } catch(Exception e){
             System.err.println("Error fetching URL: " + url + "_" + e.getMessage());
+
+            //check headers
+            Document document = Jsoup.connect(url).get();
+            Element head = document.head();
+            System.out.println("URL Head: " +url);
             e.printStackTrace();
         }
 
