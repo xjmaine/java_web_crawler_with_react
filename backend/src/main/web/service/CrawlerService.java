@@ -59,6 +59,8 @@ public class CrawlerService {
     }
 
     // print request headers
+    //TODO: implmement inner method for getRequestHead
+    //TODO: print request headers on each crowl error
     private void printRequestHeaders(HttpExchange exchange){
         Set<Map.Entry<String, List<String>>> headers = new exchange.getRequestHeaders().entrySet();
         for(Map.Entry<String, List<String>> header : headers){
